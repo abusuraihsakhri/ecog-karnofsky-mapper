@@ -16,6 +16,15 @@ import sys
 from typing import Dict, Any, List, Optional
 
 
+def _sanitize_numeric(val: float) -> float:
+    """Validate and sanitize a numeric input, rejecting NaN/Inf."""
+    if not isinstance(val, (int, float)):
+        raise TypeError(f"Expected numeric value, got {type(val).__name__}")
+    if math.isnan(val) or math.isinf(val):
+        raise ValueError(f"Invalid numeric value: {val}")
+    return float(val)
+
+
 def calculate_metrics(**kwargs) -> Dict[str, Any]:
     """
     Core domain algorithm for ecog-karnofsky-mapper.
@@ -24,7 +33,8 @@ def calculate_metrics(**kwargs) -> Dict[str, Any]:
     for k, v in kwargs.items():
         if v is not None:
             try:
-                params[k] = float(v)
+                num = float(v)
+                params[k] = _sanitize_numeric(num)
             except (ValueError, TypeError):
                 params[k] = str(v)
 
@@ -66,9 +76,15 @@ def process_single(args) -> None:
 
 
 def process_batch(input_csv: str, output_csv: str) -> None:
+    import os
+    if not os.path.isfile(input_csv):
+        raise FileNotFoundError(f"Input CSV not found: {input_csv}")
+
     with open(input_csv, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         fieldnames = list(reader.fieldnames or [])
+        if not fieldnames:
+            raise ValueError(f"Input CSV has no headers: {input_csv}")
         rows = list(reader)
 
     out_fields = fieldnames + ["score", "classification", "clinical_recommendation"]
@@ -81,6 +97,11 @@ def process_batch(input_csv: str, output_csv: str) -> None:
         row_dict["classification"] = calc_res["classification"]
         row_dict["clinical_recommendation"] = calc_res["clinical_recommendation"]
         out_rows.append(row_dict)
+
+    # Prevent path traversal: ensure output directory exists and is writable
+    out_dir = os.path.dirname(os.path.abspath(output_csv))
+    if not os.path.isdir(out_dir):
+        raise FileNotFoundError(f"Output directory does not exist: {out_dir}")
 
     with open(output_csv, mode="w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=out_fields)

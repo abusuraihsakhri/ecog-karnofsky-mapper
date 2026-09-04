@@ -1,116 +1,174 @@
 # Ecog Karnofsky Mapper
 
 > **Domain:** Clinical Decision Support & Biomedical Computing  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
-
-<div align="center">
+> **Standards:** CAP / CLSI / ISO
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
-
-</div>
 
 ---
 
-## 📖 What It Does
+## What It Does
 
-ECOG & Karnofsky Performance Status Mapper
-Bidirectionally maps and validates oncologic functional performance scales with clinical trial eligibility.
+ECOG & Karnofsky Performance Status Mapper bidirectionally maps and validates oncologic functional performance scales with clinical trial eligibility. It provides:
 
-Zero-dependency Python implementation with single and batch evaluation.
+- Single-case evaluation via CLI
+- Batch CSV processing
+- Multi-worker consensus with specialized agents
+- HMAC-SHA256 tamper-evident audit trail
+- Zero-PHI outbound guard
+- FastAPI REST API with health and metrics endpoints
+
 Author: Dr. Abu Suraih Sakhri
 License: MIT
 
 ---
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## Installation
 
-### 🔬 Analytical Functions
+```bash
+# Clone the repository
+git clone https://github.com/abusuraihsakhri/ecog-karnofsky-mapper.git
+cd ecog-karnofsky-mapper
 
-- **`calculate_metrics()`**: Core domain algorithm for ecog-karnofsky-mapper.
-- **`process_single()`** — calculates and validates process_single parameters.
-- **`process_batch()`** — calculates and validates process_batch parameters.
-- **`main()`** — calculates and validates main parameters.
+# Install dependencies
+pip install -e .
+
+# Or install with development dependencies
+pip install -e ".[dev]"
+```
+
+### Requirements
+- Python 3.10+
+- fastapi >= 0.111.0
+- uvicorn >= 0.30.0
+- pydantic >= 2.7.0
 
 ---
 
-## 📐 Mathematical Formulation & Logic
+## Usage
 
-```text
-  score = primary_val
-  rounded_score = round(score, 2)
-  res = calculate_metrics(**kwargs)
-  calc_res = calculate_metrics(**r)
+### CLI — Single Case Evaluation
+```bash
+python ecog_karnofsky.py single --v1 14.5 --v2 4.2 --v3 1.8
 ```
+
+### CLI — Batch CSV Processing
+```bash
+python ecog_karnofsky.py batch -i sample.csv -o results.csv
+```
+
+### CLI — Enterprise Supervisor (agents system)
+```bash
+# Run a single audit task
+python cli.py audit --task-id TASK-001 --primary 28.5 --secondary 14.2
+
+# Batch process records
+python cli.py batch -i sample.csv -o results.csv
+
+# Verify audit trail integrity
+python cli.py verify-audit
+
+# Chat with supervisor
+python cli.py chat "Explain the scoring methodology"
+```
+
+### REST API Server
+```bash
+python cli.py serve --host 127.0.0.1 --port 8000
+```
+
+Or with Docker:
+```bash
+docker-compose up --build
+```
+
+### API Endpoints
+| Endpoint | Method | Description |
+|:---------|:-------|:------------|
+| `/health` | GET | Health check |
+| `/metrics` | GET | Operational metrics |
+| `/api/audit` | POST | Submit task for evaluation |
+| `/api/chat` | POST | Query supervisory chat |
+| `/api/audit/logs` | GET | Retrieve audit trail |
 
 ---
 
-## 💻 CLI Quickstart & Usage
+## Input Data Schema
 
-### 1. Guided Interactive Mode
-```bash
-python cli.py
-```
+### Single Evaluation
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `--v1` | float | 10.0 | Primary parameter |
+| `--v2` | float | 5.0 | Secondary parameter |
+| `--v3` | float | 2.0 | Tertiary parameter |
 
-### 2. Direct Parameterized Evaluation
-```bash
-python cli.py --task-id <value> --target <value> --primary <value> --secondary <value>
-```
-
-### Parameter Reference
-- `--task-id`: Specifies input measurement or parameter value.
-- `--target`: Specifies input measurement or parameter value.
-- `--primary`: Specifies input measurement or parameter value.
-- `--secondary`: Specifies input measurement or parameter value.
-- `--critical`: Specifies input measurement or parameter value.
-- `--status`: Specifies input measurement or parameter value.
-- `--input`: Specifies input measurement or parameter value.
-- `--output`: Specifies input measurement or parameter value.
-
-### Input Data Schema
-
+### Batch CSV
 | Field | Description | Requirement |
 |:------|:------------|:------------|
-| `Patient_ID` | Parameter / observation metric | Required |
-| `v1` | Parameter / observation metric | Required |
-| `v2` | Parameter / observation metric | Required |
-| `v3` | Parameter / observation metric | Required |
+| `Patient_ID` | Patient identifier | Required |
+| `v1` | Primary measurement | Required |
+| `v2` | Secondary measurement | Required |
+| `v3` | Tertiary measurement | Required |
 
 ---
 
-## 🛡️ Security & Enterprise Architecture
+## Security
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+- **Zero-PHI Outbound Guard:** AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers
+- **HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation
+- **Input Validation:** Numeric inputs validated against NaN/Inf injection
+- **Audit Secret Key:** Configure via `AUDIT_SECRET_KEY` environment variable (required for persistent audit integrity)
 
 ---
 
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+## Testing
 
 ```bash
+# Run all tests
 pytest -v
-```
 
-Execute high-throughput batch simulation benchmarks:
-
-```bash
-python simulator.py --tasks 1000 --concurrency 8
+# Run with coverage
+pytest -v --cov=agents --cov=ecog_karnofsky
 ```
 
 ---
 
-## 🐳 Container Deployment
+## Project Structure
+
+```
+ecog-karnofsky-mapper/
+├── agents/                  # Enterprise multi-agent system
+│   ├── api.py              # FastAPI REST server
+│   ├── base.py             # Security, PHI guard, audit trail
+│   ├── models.py           # Pydantic data models
+│   ├── supervisor.py       # Master orchestrator
+│   ├── workers.py          # Specialized evaluation workers
+│   ├── llm_factory.py      # LLM provider factory
+│   ├── metrics.py          # Prometheus metrics collector
+│   ├── learning.py         # Bayesian calibration engine
+│   └── streamer.py         # WebSocket telemetry broadcaster
+├── tests/                  # Test suite
+├── web/                    # Operations console (HTML)
+├── cli.py                  # Enterprise CLI entry point
+├── ecog_karnofsky.py       # Core scoring algorithm & CLI
+├── enrichment.py           # Enrichment feature engines
+├── simulator.py            # High-throughput stress simulator
+├── pyproject.toml          # Project metadata & dependencies
+├── Dockerfile              # Container build
+└── docker-compose.yml      # Container orchestration
+```
+
+---
+
+## Container Deployment
 
 ```bash
+# Build and run with Docker
 docker build -t ecog-karnofsky-mapper .
-docker run -p 8000:8000 ecog-karnofsky-mapper
+docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key ecog-karnofsky-mapper
+
+# Or use docker-compose
+AUDIT_SECRET_KEY=your-secret-key docker-compose up --build
 ```

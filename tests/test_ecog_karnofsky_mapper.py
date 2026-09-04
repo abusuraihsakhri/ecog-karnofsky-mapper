@@ -63,3 +63,28 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_audit_trail_no_hardcoded_key():
+    """AuditTrail should not use hardcoded default key when env var is unset."""
+    import os
+    # Save and clear any existing env var
+    saved = os.environ.pop("AUDIT_SECRET_KEY", None)
+    try:
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            from agents.base import AuditTrail
+            trail = AuditTrail()
+            # Should warn about missing AUDIT_SECRET_KEY
+            assert any("AUDIT_SECRET_KEY" in str(warning.message) for warning in w)
+    finally:
+        if saved is not None:
+            os.environ["AUDIT_SECRET_KEY"] = saved
+
+
+def test_cli_batch_missing_file():
+    """CLI batch command should return error code for missing input file."""
+    from cli import main
+    result = main(["batch", "-i", "nonexistent_file_12345.csv"])
+    assert result == 1
