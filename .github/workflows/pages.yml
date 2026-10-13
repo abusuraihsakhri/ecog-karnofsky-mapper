@@ -41,3 +41,29 @@ jobs:
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify deployed site over HTTPS
+        env:
+          LIVE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import time
+          from urllib.request import Request, urlopen
+
+          url = os.environ["LIVE_URL"]
+          for attempt in range(24):
+              try:
+                  request = Request(url, headers={"User-Agent": "ecog-kps-pages-smoke-test"})
+                  with urlopen(request, timeout=20) as response:
+                      html = response.read().decode("utf-8")
+                      assert response.status == 200, response.status
+                  assert "<title>ECOG–Karnofsky Performance Status Mapper</title>" in html
+                  assert "const GROUPS = [[90,100],[70,80],[50,60],[30,40],[10,20],[0]];" in html
+                  assert 'id="convert"' in html
+                  print("Published application serves the expected interactive source:", url)
+                  break
+              except Exception:
+                  if attempt == 23:
+                      raise
+                  time.sleep(5)
+          PY
