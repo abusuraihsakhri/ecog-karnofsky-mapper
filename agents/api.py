@@ -1,60 +1,92 @@
-"""
-FastAPI REST API Server for Ecog Karnofsky Mapper.
-"""
-from typing import Dict, Any, List
+"""FastAPI entry point: clinical crosswalk plus legacy demonstration endpoints."""
+from pathlib import Path
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+from ecog_karnofsky import ECOG_TO_KPS, REFERENCE_URL, calculate_metrics
 from .base import AuditLogger, PHIGuard, SecurityException
-from .models import SystemTaskPayload, ConsensusDossier
+from .models import SystemTaskPayload
 from .supervisor import SystemSupervisor
 
 supervisor = SystemSupervisor(model_provider="mock")
-
 app = FastAPI(
-    title="Ecog Karnofsky Mapper API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
-    version="3.0.0-ENTERPRISE",
+    title="ECOG–Karnofsky Mapper",
+    description="Illustrative ECOG-ACRIN crosswalk. Legacy audit endpoints are demonstrations.",
+    version="3.1.0",
 )
+INDEX = Path(__file__).resolve().parent.parent / "index.html"
+
+
+class MappingRequest(BaseModel):
+    ecog: Optional[int] = None
+    kps: Optional[int] = None
 
 
 class ChatRequest(BaseModel):
     query: str
 
 
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(INDEX, media_type="text/html")
+
+
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "ecog-karnofsky-mapper", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "ok", "service": "ecog-karnofsky-mapper", "version": "3.1.0"}
+
+
+@app.get("/api/mapping")
+def mapping_reference():
+    return {
+        "crosswalk": [{"ecog": grade, "kps_values": list(values)}
+                      for grade, values in ECOG_TO_KPS.items()],
+        "reference": REFERENCE_URL,
+        "note": "Illustrative comparison, not an exact individual-patient conversion.",
+    }
+
+
+@app.post("/api/map")
+def api_map(req: MappingRequest):
+    try:
+        return calculate_metrics(ecog=req.ecog, kps=req.kps)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/metrics")
 def metrics():
     return {
-        "dossiers_processed_total": len(supervisor.dossier_registry),
-        "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
+        "legacy_dossiers_processed_total": len(supervisor.dossier_registry),
+        "legacy_audit_blocks_total": len(AuditLogger.get_trail()),
     }
 
 
-@app.post("/api/audit")
+@app.post("/api/audit", deprecated=True)
 def api_audit(payload: SystemTaskPayload):
+    """Legacy generic audit simulator, not a clinical ECOG/KPS evaluation."""
     try:
-        dossier = supervisor.process_task(payload)
-        return dossier.to_dict()
-    except SecurityException as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        result = supervisor.process_task(payload).to_dict()
+        result["demonstration_only"] = True
+        return result
+    except SecurityException as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.post("/api/chat")
+@app.post("/api/chat", deprecated=True)
 def api_chat(req: ChatRequest):
     try:
-        ans = supervisor.query_supervisory_chat(req.query)
-        return {"response": ans}
-    except SecurityException as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return {"response": supervisor.query_supervisory_chat(req.query),
+                "demonstration_only": True}
+    except SecurityException as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.get("/api/audit/logs")
+@app.get("/api/audit/logs", deprecated=True)
 def api_audit_logs():
-    return {"audit_trail": AuditLogger.get_trail(), "verified": AuditLogger.verify_integrity()}
+    return {"audit_trail": AuditLogger.get_trail(),
+            "verified": AuditLogger.verify_integrity(),
+            "demonstration_only": True}

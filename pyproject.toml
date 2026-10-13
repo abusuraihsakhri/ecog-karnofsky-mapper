@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ecog-karnofsky-mapper"
-version = "3.0.0"
-description = "ECOG & Karnofsky Performance Status Mapper — bidirectionally maps and validates oncologic functional performance scales with clinical trial eligibility."
+version = "3.1.0"
+description = "Reference ECOG–Karnofsky performance-status comparison with validated inputs."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Medical Science",
 ]
 
 dependencies = [
@@ -39,6 +39,9 @@ dev = [
 
 [project.scripts]
 ecog-karnofsky-mapper = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli", "ecog_karnofsky", "enrichment", "simulator"]
 
 [tool.setuptools.packages.find]
 include = ["agents*"]
