@@ -44,10 +44,13 @@ def _whole_number(value, label):
     if isinstance(value, bool) or value is None:
         raise ValueError(f"{label} must be a whole number")
     if isinstance(value, str):
-        if not re.fullmatch(r"[0-9]+(?:\.0+)?", value.strip()):
+        raw = value.strip()
+        if len(raw) > 32 or not re.fullmatch(r"[0-9]+(?:\\.0+)?", raw):
             raise ValueError(f"{label} must be a whole number")
-        value = float(value.strip())
-    if not isinstance(value, (int, float)) or not math.isfinite(value) or not float(value).is_integer():
+        value = int(raw.split(".")[0])
+    if isinstance(value, int):
+        return value
+    if not isinstance(value, float) or not math.isfinite(value) or not value.is_integer():
         raise ValueError(f"{label} must be a finite whole number")
     return int(value)
 
