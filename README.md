@@ -1,12 +1,14 @@
 # ECOG–Karnofsky Performance Status Mapper
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/ecog-karnofsky-mapper/)
+
 Reference tool for mapping between **Eastern Cooperative Oncology Group (ECOG)** performance-status grades and **Karnofsky Performance Status (KPS)** scores using the comparison published by the ECOG-ACRIN Cancer Research Group.
 
 The crosswalk is **not** a validated exact patient-level conversion. It cannot establish clinical-trial eligibility, predict prognosis, or replace a direct assessment of functional status.
 
 ## Main application
 
-Open the repository's `index.html` in a modern browser for a standalone, dependency-free interface. A deployed GitHub Pages URL will be added after live verification.
+Open the **live application** from the link above, or open the repository's `index.html` locally in a modern browser. The same standalone interface runs in either location without a backend.
 
 - Compare ECOG 0–5 to grouped KPS scores.
 - Compare valid KPS deciles (0–100) to an ECOG reference grade.
@@ -68,4 +70,5 @@ For the legacy audit simulator, `AUDIT_SECRET_KEY` must be provided for stable H
 - Server: Python, FastAPI, Pydantic and Uvicorn, with optional Docker support.
 - Tests: Pytest for clinical groups, API input validation, CSV safety, and legacy audit integrity; GitHub Actions verifies Python 3.10–3.12 and JavaScript syntax.
 - Browsers: Current versions of Chrome, Firefox, Safari and Edge. Local downloads and Clipboard API availability depend on browser permissions and context.
+- Versioned release: [v3.1.0](https://github.com/abusuraihsakhri/ecog-karnofsky-mapper/releases/tag/v3.1.0).
 - License: [MIT](LICENSE).
