@@ -1,0 +1,45 @@
+name: Publish tested version
+
+on:
+  workflow_run:
+    workflows: ["Tests and packaging"]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Publish version if absent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          VERSION=$(python3 - <<'PY'
+          import pathlib, tomllib
+          print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])
+          PY
+          )
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; no changes needed."
+          else
+            gh release create "$TAG" \
+              --target "$TARGET_SHA" \
+              --title "$TAG" \
+              --notes "ECOG–Karnofsky reference mapper with validated ECOG-ACRIN grouped comparisons, browser-only CSV processing, Python CLI/API, and expanded tests. Reference only; not a patient-level assessment or a clinical eligibility determination."
+          fi
