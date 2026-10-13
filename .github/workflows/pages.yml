@@ -67,3 +67,46 @@ jobs:
                       raise
                   time.sleep(5)
           PY
+
+      - name: Exercise published UI in Chromium
+        env:
+          LIVE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          python3 -m pip install --disable-pip-version-check playwright
+          python3 -m playwright install --with-deps chromium
+          python3 - <<'PY'
+          import os
+          import tempfile
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+
+          with sync_playwright() as playwright:
+              browser = playwright.chromium.launch(headless=True)
+              context = browser.new_context(accept_downloads=True)
+              page = context.new_page()
+              errors = []
+              page.on("pageerror", lambda error: errors.append(str(error)))
+              page.goto(os.environ["LIVE_URL"], wait_until="load")
+              assert "ECOG 2 · KPS 50 or 60" in page.locator("#result").inner_text()
+              page.locator("#scale").select_option("kps")
+              page.locator("#score").select_option("40")
+              assert "ECOG 3 · KPS 30 or 40" in page.locator("#result").inner_text()
+              page.locator("#file").set_input_files({
+                  "name": "test.csv",
+                  "mimeType": "text/csv",
+                  "buffer": b"case,ecog,kps\ncase-one,1,\ncase-two,,40\n",
+              })
+              with page.expect_download() as download_event:
+                  page.locator("#convert").click()
+              download = download_event.value
+              assert download.suggested_filename == "ecog-kps-mapped.csv"
+              assert "2 rows validated" in page.locator("#batchStatus").inner_text()
+              with tempfile.TemporaryDirectory() as folder:
+                  output = Path(folder) / "mapped.csv"
+                  download.save_as(output)
+                  csv_data = output.read_text(encoding="utf-8")
+                  assert "70|80" in csv_data and "30|40" in csv_data
+              assert not errors, errors
+              print("Published ECOG/KPS selection and CSV download passed in Chromium.")
+              browser.close()
+          PY
