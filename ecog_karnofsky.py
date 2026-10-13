@@ -45,7 +45,7 @@ def _whole_number(value, label):
         raise ValueError(f"{label} must be a whole number")
     if isinstance(value, str):
         raw = value.strip()
-        if len(raw) > 32 or not re.fullmatch(r"[0-9]+(?:\\.0+)?", raw):
+        if len(raw) > 32 or not re.fullmatch(r"[0-9]+(?:\.0+)?", raw):
             raise ValueError(f"{label} must be a whole number")
         value = int(raw.split(".")[0])
     if isinstance(value, int):
